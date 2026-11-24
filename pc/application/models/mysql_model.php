@@ -12,6 +12,15 @@ class Mysql_model extends CI_Model {
 	}
 	
 	public function query($sql,$type=1) {
+	    // MySQL 8 严格模式不接受 billDate<="" / billDate<''（报表没传日期时会拼出来，CASE 里也有），
+	    // 把空日期换成合法边界：> 用 1970-01-01，< 用 2999-12-31
+	    $sql = preg_replace_callback(
+	        '/\b((?:\w+\.)?billDate)\s*([<>])(=?)\s*(\'\'|"")/i',
+	        function ($m) {
+	            return $m[1].' '.$m[2].$m[3].' "'.($m[2] === '>' ? '1970-01-01' : '2999-12-31').'"';
+	        },
+	        $sql
+	    );
 		$query = $this->db->query($sql);
 //        echo $this->db->last_query();die;
 		switch ($type) {

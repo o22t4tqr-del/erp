@@ -240,7 +240,7 @@ class InvOi extends CI_Controller {
 		if (count($data)>0) { 
 			$data['num']    = 53;
 			$data['system'] = $this->common_model->get_option('system'); 
-			$postData = unserialize($data['postData']);
+			$postData = $this->common_model->get_doc_entries($id, $data['postData'], 'invoice');
 		    foreach ($postData['entries'] as $arr=>$row) {
 			    $v[$arr]['i']               = $arr + 1;
 				$v[$arr]['invNumber']       = $row['invNumber'];
@@ -480,7 +480,7 @@ class InvOi extends CI_Controller {
 		if (count($data)>0) { 
 			$data['num']    = 53;
 			$data['system'] = $this->common_model->get_option('system'); 
-			$postData = unserialize($data['postData']);
+			$postData = $this->common_model->get_doc_entries($id, $data['postData'], 'invoice');
 		    foreach ($postData['entries'] as $arr=>$row) {
 			    $v[$arr]['i']               = $arr + 1;
 				$v[$arr]['invNumber']       = $row['invNumber'];

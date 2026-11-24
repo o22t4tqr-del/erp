@@ -142,7 +142,7 @@ class InvTf extends CI_Controller {
 	    $id   = intval($this->input->get_post('id',TRUE));
 		$data = $this->mysql_model->get_rows('invoice',array('id'=>$id,'transType'=>103091,'isDelete'=>0));
 		if (count($data)>0) {
-			$postData = unserialize($data['postData']);
+			$postData = $this->common_model->get_doc_entries($id, $data['postData'], 'invoice');
 		    foreach ($postData['entries'] as $arr=>$row) {
 				$v[$arr]['invId']           = intval($row['invId']);
 				$v[$arr]['invNumber']       = $row['invNumber'];
@@ -214,7 +214,7 @@ class InvTf extends CI_Controller {
 		if (count($data)>0) { 
 			$data['num']    = 53;
 			$data['system'] = $this->common_model->get_option('system'); 
-			$postData = unserialize($data['postData']);
+			$postData = $this->common_model->get_doc_entries($id, $data['postData'], 'invoice');
 		    foreach ($postData['entries'] as $arr=>$row) {
 			    $v[$arr]['i']               = $arr + 1;
 				$v[$arr]['invId']           = intval($row['invId']);

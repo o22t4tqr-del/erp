@@ -551,8 +551,10 @@ class InvSa extends CI_Controller {
 			    $data['num'] = $entrysPerNote;
 			    $this->input->set_cookie('entrysPerNote',$entrysPerNote,360000);
 			}
+			// 直接打开打印链接时没有 entrysPerNote，num 会是 0，模板里的分页条件会把所有行过滤掉
+			if ($data['num'] < 1) { $data['num'] = 53; }
 			$data['system'] = $this->common_model->get_option('system'); 
-			$postData = unserialize($data['postData']);
+			$postData = $this->common_model->get_doc_entries($id, $data['postData'], 'invoice');
 			foreach ($postData['entries'] as $arr=>$row) {
 			    $v[$arr]['i']               = $arr + 1;
 				$v[$arr]['invId']           = intval($row['invId']);

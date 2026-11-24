@@ -29,7 +29,7 @@ class Prints extends CI_Controller {
         if ($count>0) {
             $data['num']    = 8;
             $data['system'] = $this->common_model->get_option('system');
-            $postData = unserialize($data['postData']);
+            $postData = $this->common_model->get_doc_entries($id, $data['postData'], $type == '1' ? 'order' : 'invoice');
             $tableHtml = '<table><thead><tr><th width="6%">序号</th><th width="30%">商品</th><th>单位</th><th width="6%">数量</th><th>销售单价</th><th>折扣</th><th>折扣额</th><th>销售金额</th><th>仓库</th></tr></thead><tbody>';
             $count = count($postData['entries']);
             foreach ($postData['entries'] as $arr=>$row) {

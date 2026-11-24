@@ -16,6 +16,31 @@ class Common_model extends CI_Model{
 	public function get_admin() { 
 		return $this->mysql_model->get_rows('admin',array('uid'=>$this->jxcsys['uid'],'status'=>1)); 
 	}
+
+	/**
+	 * 取单据明细。
+	 * 正常情况 postData 里是 serialize 的整单数据；但别的系统写进来的单据 postData 可能是空，
+	 * 这时退回到明细表（ci_invoice_info / ci_order_info）拼出来，避免打印/编辑页 500。
+	 */
+	public function get_doc_entries($iid, $raw, $kind = 'invoice') {
+	    $postData = @unserialize($raw);
+	    if (is_array($postData) && isset($postData['entries']) && is_array($postData['entries']) && count($postData['entries']) > 0) {
+	        return $postData;
+	    }
+	    $table = ($kind === 'order') ? 'order_info' : 'invoice_info';
+	    $sql = "SELECT i.invId, i.qty, i.price, i.amount, i.deduction, i.discountRate,
+	                   i.description, i.locationId, i.unitId,
+	                   g.number AS invNumber, g.name AS invName, g.spec AS invSpec,
+	                   u.name AS mainUnit, s.name AS locationName
+	            FROM ".$this->db->dbprefix($table)." i
+	            LEFT JOIN ".$this->db->dbprefix('goods')." g ON g.id = i.invId
+	            LEFT JOIN ".$this->db->dbprefix('unit')." u ON u.id = i.unitId
+	            LEFT JOIN ".$this->db->dbprefix('storage')." s ON s.id = i.locationId
+	            WHERE i.iid = ".intval($iid)."
+	            ORDER BY i.id";
+	    $rows = $this->db->query($sql)->result_array();
+	    return array('entries' => $rows);
+	}
 	
 	 
 	 

@@ -322,7 +322,7 @@ class InvSo extends CI_Controller {
 		if (count($data)>0) { 
 			$data['num']    = 8;
 			$data['system'] = $this->common_model->get_option('system'); 
-			$postData = unserialize($data['postData']);
+			$postData = $this->common_model->get_doc_entries($id, $data['postData'], 'order');
 			foreach ($postData['entries'] as $arr=>$row) {
 			    $v[$arr]['i']               = $arr + 1;
 				$v[$arr]['invId']           = intval($row['invId']);

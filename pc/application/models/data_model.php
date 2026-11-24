@@ -122,6 +122,8 @@ class Data_model extends CI_Model{
 	
 	//销售汇总表（按商品） 毛利计算 单价成本
 	public function get_profit($where) {
+	    // 报表没传日期时会被拼成 billDate<="" 或 billDate<""，MySQL 8 严格模式直接报 1525
+	    $where = preg_replace('/\band\s+billDate\s*[<>]=?\s*(\'\'|"")/i', '', $where);
 	    $sql = 'select 
 					invId,locationId,billDate,sum(qty) as qty,
 					sum(case when transType=150501 or transType=150502 or transType=150807 or transType=150706 or billType="INI" or transType=103091 then amount else 0 end) as inamount,

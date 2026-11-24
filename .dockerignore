@@ -4,5 +4,5 @@
 **/.git
 # m 端（Laravel 7）本次不部署，别进构建上下文
 m
-*.zip
+H5ERP-*.zip
 *.log

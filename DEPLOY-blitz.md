@@ -49,7 +49,7 @@ git push -u origin main
 
 应用启动时依次做：
 
-1. 从 `DATABASE_URL`（或 `DB_*` / `MYSQL_*`）解析数据库连接
+1. 自动识别数据库连接变量（`DATABASE_URL` / `DB_*` / `MYSQL_*`，见第 4 节）
 2. 等数据库能连上（最多 `WAIT_DB_SECONDS`，默认 120 秒；免费套餐休眠唤醒时会慢一点）
 3. 库里没有 `ci_admin` 表 → 导入 `erp.sql`（25 张表 + admin 账号 + 菜单/单据模板）
 4. 启动 Apache，监听 `PORT`（8080）
@@ -57,6 +57,8 @@ git push -u origin main
 日志应当是：
 
 ```
+[db-init] 连接参数 host=… db=… user=… 密码=已设置
+[db-init] 变量来源 host←DB_HOST port←默认值 db←DB_DATABASE user←DB_USERNAME pass←DB_PASSWORD
 [db-init] 空库，导入 erp.sql（276 条语句）
 [db-init] 导入完成：25 张表，管理员账号 admin 已就绪
 ```
@@ -83,23 +85,48 @@ git push -u origin main
 
 ---
 
-## 4. 环境变量（都在应用页的 Environment 标签）
+## 4. 环境变量（在应用页的 Environment 标签）
+
+连接参数是**自动识别**的：代码按顺序找下面这些变量名，谁有值用谁，改名不用改代码。
+
+| 字段 | 认得的变量名（从左到右优先） |
+|---|---|
+| 连接串 | `DATABASE_URL`、`MYSQL_URL`、`DB_URL`、`CLEARDB_DATABASE_URL`、`JAWSDB_URL`、`DATABASE_URI` |
+| 主机 | `DB_HOST`、`DB_HOSTNAME`、`DATABASE_HOST`、`MYSQL_HOST`、`MYSQL_HOSTNAME`、`MYSQL_SERVER` |
+| 端口 | `DB_PORT`、`DATABASE_PORT`、`MYSQL_PORT` |
+| 库名 | `DB_DATABASE`、`DB_NAME`、`DB_DB`、`DATABASE_NAME`、`MYSQL_DATABASE`、`MYSQL_DB` |
+| 用户 | `DB_USERNAME`、`DB_USER`、`DATABASE_USER`、`MYSQL_USER`、`MYSQL_USERNAME` |
+| 密码 | `DB_PASSWORD`、`DB_PASS`、`DB_PWD`、`DATABASE_PASSWORD`、`MYSQL_PASSWORD`、`MYSQL_PASS`、`MYSQL_ROOT_PASSWORD` |
+
+优先级：**手填的单变量 > 连接串 > 默认值**（`localhost` / `3306` / `erp` / `root`）。
+单变量只填一部分也行，没填的字段才用连接串或默认值。
+
+其他可选变量：
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `DATABASE_URL` | 平台注入 | `mysql://user:pass@host:3306/db`，优先使用 |
 | `AUTO_INIT_SCHEMA` | `1` | `0` = 不自动导入表结构（库由你自己导好时用） |
 | `WAIT_DB_SECONDS` | `120` | 等数据库就绪的秒数 |
 | `DB_DEBUG` | `1` | `0` = 不把 SQL 错误显示到页面（正式对外时建议 0） |
 | `TZ` | `Asia/Shanghai` | 时区 |
 
+启动时日志会把识别结果打出来（**不打印密码**），可以直接核对：
+
+```
+[db-init] 连接参数 host=1.2.3.4:3306 db=erp user=erp_user 密码=已设置
+[db-init] 变量来源 host←DB_HOST port←默认值 db←DB_DATABASE user←DB_USERNAME pass←DB_PASSWORD
+[db-init] 环境里可见的数据库相关变量：DB_DATABASE, DB_HOST, DB_PASSWORD, DB_USERNAME
+```
+
+如果连接串和手填变量同时存在，会多一行冲突提示，并以手填的值为准。
+
 改完环境变量要**重启应用**才生效。
 
 ---
 
-## 5. 如果你要接自己的 MySQL / MariaDB
+## 5. 接你自己的 MySQL / MariaDB
 
-在 Environment 里加：
+Environment 里只填这 5 个就够（名字按上一节，`DB_*` 或 `MYSQL_*` 都行）：
 
 ```
 DB_HOST=你的地址
@@ -110,11 +137,12 @@ DB_PASSWORD=密码
 AUTO_INIT_SCHEMA=0
 ```
 
-（也可以只给 `DATABASE_URL`。）
-`AUTO_INIT_SCHEMA=0` 是防止自动导入动到你的生产库；表结构自己用 `erp.sql` 导好即可。
-如果库是空的又懒得手动导，把 `AUTO_INIT_SCHEMA` 留默认 `1` 也行，脚本只在没有 `ci_admin` 表时才导入。
+- **不用**再写 `DATABASE_URL`；万一平台也注入了一个，手填的这套优先，日志里会提示冲突
+- `AUTO_INIT_SCHEMA=0` 是防止自动导入动到你的生产库；表结构自己用 `erp.sql` 导好
+- 库是空的又不想手动导：留默认 `1`，脚本只在没有 `ci_admin` 表时才导入
+- 密码里带 `@ : / #` 都行，**别**塞进 `DATABASE_URL`（URL 里要转义）
 
-> 注意：数据库必须是 MySQL 5.7+/8 或 MariaDB 10.4+，**不能用 PostgreSQL**。
+> 数据库必须是 MySQL 5.7+/8 或 MariaDB 10.4+，**不能用 PostgreSQL**。
 
 ---
 
@@ -147,11 +175,12 @@ AUTO_INIT_SCHEMA=0
 # 用外部库（推荐，和线上一致）
 docker build -t h5erp .
 docker run -p 8080:8080 \
-  -e DATABASE_URL='mysql://root:pass@host.docker.internal:3306/erp' \
+  -e DB_HOST=host.docker.internal -e DB_DATABASE=erp \
+  -e DB_USERNAME=root -e DB_PASSWORD=pass \
   h5erp
 
 # 或者一键起应用 + MySQL 8（仅本地调试用）
-docker compose up -d
+docker compose -f docker-compose.local.yml up -d
 ```
 
 访问 <http://localhost:8080>，admin / admin888。
@@ -160,5 +189,7 @@ docker compose up -d
 
 ## 9. 和 docker-compose 的区别
 
-`docker-compose.yml` 只是本地调试方便，里面带了一个 MySQL 容器。
-blitz 上**只用 Dockerfile**：应用一个容器 + 平台托管 MariaDB，`docker-compose.yml` 会被忽略。
+`docker-compose.local.yml` 只是本地调试方便，里面带了一个 MySQL 容器。
+文件名故意不叫 `docker-compose.yml`：blitz 会读标准命名的 compose 文件、把里面的服务当应用的一部分，
+甚至会把它写的 `DB_HOST=db` 注进容器——那个主机在 blitz 上不存在。
+线上**只用 Dockerfile**：应用一个容器 + 你的 MySQL（或平台托管 MariaDB）。

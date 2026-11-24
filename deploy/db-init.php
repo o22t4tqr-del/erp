@@ -15,18 +15,50 @@ error_reporting(E_ALL);
 ini_set('display_errors', 'stderr');
 
 define('BASEPATH', '/var/www/html/system/');
-require '/var/www/html/application/config/database.php';
+require '/var/www/html/application/config/db_env.php';
 
-$cfg  = $db['default'];
-$host = $cfg['hostname'];
-$port = (int) ($cfg['port'] ? $cfg['port'] : 3306);
-$user = $cfg['username'];
-$pass = $cfg['password'];
-$name = $cfg['database'];
+$erp_cfg = erp_db_config();
+
+$host = $erp_cfg['hostname'];
+$port = (int) ($erp_cfg['port'] ? $erp_cfg['port'] : 3306);
+$user = $erp_cfg['username'];
+$pass = $erp_cfg['password'];
+$name = $erp_cfg['database'];
+$src  = $erp_cfg['source'];
 
 function erp_log($msg)
 {
     fwrite(STDOUT, '[db-init] ' . $msg . "\n");
+}
+
+// 把识别到的连接参数打出来（不打印密码），方便在 blitz 的 Logs 里核对
+erp_log('连接参数 host=' . $host . ':' . $port . ' db=' . $name . ' user=' . $user
+    . ' 密码=' . ($pass !== '' ? '已设置' : '(空)'));
+erp_log('变量来源 host←' . $src['hostname'] . ' port←' . $src['port']
+    . ' db←' . $src['database'] . ' user←' . $src['username'] . ' pass←' . $src['password']);
+
+if ( ! empty($erp_cfg['conflict']))
+{
+    erp_log('注意：连接串和手填变量同时存在（' . implode(', ', $erp_cfg['conflict'])
+        . '），已用手填的值；要改用平台托管库，把 DB_*/MYSQL_* 这几个变量删掉再重启');
+}
+
+$erp_names = array();
+foreach (array_keys((array) getenv()) as $erp_key)
+{
+    if (preg_match('/^(DB_|MYSQL_|DATABASE_|CLEARDB_|JAWSDB_)/i', $erp_key))
+    {
+        $erp_names[] = $erp_key;
+    }
+}
+if ($erp_names)
+{
+    sort($erp_names);
+    erp_log('环境里可见的数据库相关变量：' . implode(', ', $erp_names));
+}
+else
+{
+    erp_log('环境里没有任何 DB_/MYSQL_/DATABASE_ 变量');
 }
 
 if (getenv('AUTO_INIT_SCHEMA') === '0') {

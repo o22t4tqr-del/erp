@@ -74,7 +74,7 @@ class Right extends CI_Controller {
 		    $sql = $this->mysql_model->insert('admin',$info);
 			if ($sql) {
 			    $this->common_model->logs('新增用户:'.$data['userNumber']);
-				die('{"status":200,"msg":"注册成功","userNumber":"'.$data['userNumber'].'"}');
+				die(json_encode(array('status' => 200, 'msg' => '注册成功', 'userNumber' => $data['userNumber'])));
 			}
 		}	
 		str_alert(-1,'添加失败'); 

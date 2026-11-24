@@ -684,7 +684,8 @@ class InvOi extends CI_Controller {
 			} else {
 			    $this->db->trans_commit();
 				$this->common_model->logs('修改成本调整 单据编号：'.$data['billNo']);
-				die('{"status":200,"msg":"success","data":'.$postData.'}');
+				$pd = json_decode($postData, true);
+				die(json_encode(array('status' => 200, 'msg' => 'success', 'data' => is_array($pd) ? $pd : array())));
 			}
 		}
 		str_alert(-1,'提交数据不为空'); 

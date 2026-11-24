@@ -82,7 +82,7 @@ class Assist extends CI_Controller {
 		$sql  = $this->mysql_model->insert('category',elements(array('name','typeNumber'),$data));
 		if ($sql) {
 			$this->common_model->logs($success.$data['name']);
-			die('{"status":200,"msg":"success","data":{"coId":0,"detail":true,"id":'.$sql.',"level":1,"name":"'.$data['name'].'","parentId":0,"remark":"","sortIndex":2,"status":0,"typeNumber":"'.$data['typeNumber'].'","uuid":""}}');
+			die(json_encode(array('status' => 200, 'msg' => 'success', 'data' => array('coId' => 0, 'detail' => true, 'id' => intval($sql), 'level' => 1, 'name' => $data['name'], 'parentId' => 0, 'remark' => '', 'sortIndex' => 2, 'status' => 0, 'typeNumber' => $data['typeNumber'], 'uuid' => ''))));
 		}
 		str_alert(-1,'添加失败');
 	}
@@ -103,7 +103,7 @@ class Assist extends CI_Controller {
 		}
 		if ($sql) {
 			$this->common_model->logs('新增商品类别:'.$data['name']);
-			die('{"status":200,"msg":"success","data":{"coId":0,"detail":true,"id":'.$newid.',"level":'.$data['level'].',"name":"'.$data['name'].'","parentId":'.$data['parentId'].',"remark":"","sortIndex":1,"status":0,"typeNumber":"'.$data['typeNumber'].'","uuid":""}}');
+			die(json_encode(array('status' => 200, 'msg' => 'success', 'data' => array('coId' => 0, 'detail' => true, 'id' => intval($newid), 'level' => intval($data['level']), 'name' => $data['name'], 'parentId' => intval($data['parentId']), 'remark' => '', 'sortIndex' => 1, 'status' => 0, 'typeNumber' => $data['typeNumber'], 'uuid' => ''))));
 		}
 		str_alert(-1,'添加失败');
 	}
@@ -137,9 +137,7 @@ class Assist extends CI_Controller {
 		$sql = $this->mysql_model->update('category',elements(array('name','typeNumber'),$data),array('id'=>$data['id']));
 		if ($sql) {
 			$this->common_model->logs($success.$data['name']);
-			die('{"status":200,"msg":"success","data":{"coId":0,"detail":true,"id":'.$data['id'].',"level":1,"name"
-		:"'.$data['name'].'","parentId":0,"remark":"","sortIndex":2,"status":0,"typeNumber":"'.$data['typeNumber'].'","uuid":""
-		}}');
+			die(json_encode(array('status' => 200, 'msg' => 'success', 'data' => array('coId' => 0, 'detail' => true, 'id' => intval($data['id']), 'level' => 1, 'name' => $data['name'], 'parentId' => 0, 'remark' => '', 'sortIndex' => 2, 'status' => 0, 'typeNumber' => $data['typeNumber'], 'uuid' => ''))));
 		}
 		str_alert(-1,'修改失败');
 	}
@@ -201,7 +199,7 @@ class Assist extends CI_Controller {
 		$data['level'] = $pare_depth;
 		$this->mysql_model->update('goods',array('categoryName'=>$data['name']),array('categoryId'=>$data['id']));
 		$this->common_model->logs('修改类别:ID='.$data['id'].' 名称:'.$data['name']);
-		die('{"status":200,"msg":"success","data":{"coId":0,"detail":true,"id":'.$data['id'].',"level":'.$data['level'].',"name":"'.$data['name'].'","parentId":'.$data['parentId'].',"remark":"","sortIndex":0,"status":0,"typeNumber":"trade","uuid":""}}');
+		die(json_encode(array('status' => 200, 'msg' => 'success', 'data' => array('coId' => 0, 'detail' => true, 'id' => intval($data['id']), 'level' => intval($data['level']), 'name' => $data['name'], 'parentId' => intval($data['parentId']), 'remark' => '', 'sortIndex' => 0, 'status' => 0, 'typeNumber' => 'trade', 'uuid' => ''))));
 		str_alert(200,'success',$data);
 	}
 	

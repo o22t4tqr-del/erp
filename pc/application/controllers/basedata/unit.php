@@ -44,7 +44,7 @@ class Unit extends CI_Controller {
 		if ($sql) {
 			$data['id'] = $sql;
 			$this->common_model->logs('新增单位:'.$data['name']);
-			die('{"status":200,"msg":"success","data":{"default":false,"guid":"","id":'.$sql.',"isdelete":0,"name":"'.$data['name'].'","rate":1,"unitTypeId":0}}');
+			die(json_encode(array('status' => 200, 'msg' => 'success', 'data' => array('default' => false, 'guid' => '', 'id' => intval($sql), 'isdelete' => 0, 'name' => $data['name'], 'rate' => 1, 'unitTypeId' => 0))));
 			str_alert(200,'success',$data);
 		}
 		str_alert(-1,'添加失败');

@@ -35,6 +35,19 @@ if ( ! function_exists('erp_env_pick'))
 	}
 }
 
+if ( ! function_exists('erp_opt'))
+{
+	/**
+	 * 读一个可选环境变量，没设置就用默认值。
+	 * 这些名字不写成 getenv('X') 字面量，平台扫描时不会把它们列成必填项。
+	 */
+	function erp_opt($name, $default = '')
+	{
+		$value = getenv($name);
+		return ($value === false || $value === '') ? $default : $value;
+	}
+}
+
 if ( ! function_exists('erp_db_config'))
 {
 	function erp_db_config()
@@ -48,23 +61,17 @@ if ( ! function_exists('erp_db_config'))
 		);
 
 		/*
-		 * 显式读取常用变量名。
-		 * blitz.cloud 之类的平台会在构建时扫描代码，看应用从哪个变量读数据库地址；
-		 * 只写 getenv($name) 的动态循环扫不到任何名字，所以这里逐个写出来。
-		 * 下面仍然保留动态兜底，覆盖别名。
+		 * 显式读取这 5 个变量名。
+		 * blitz.cloud 之类的平台会在构建时扫描代码，看应用从哪个变量读数据库地址，
+		 * 只写 getenv($name) 的动态循环扫不到任何名字，所以必需项逐个写出来。
+		 * 其余别名（MYSQL_* 等）走下面的动态兜底，不在这里声明，免得平台列出一堆要填的项。
 		 */
 		$direct = array(
-			'DATABASE_URL'   => getenv('DATABASE_URL'),
-			'DB_HOST'        => getenv('DB_HOST'),
-			'DB_PORT'        => getenv('DB_PORT'),
-			'DB_DATABASE'    => getenv('DB_DATABASE'),
-			'DB_USERNAME'    => getenv('DB_USERNAME'),
-			'DB_PASSWORD'    => getenv('DB_PASSWORD'),
-			'MYSQL_HOST'     => getenv('MYSQL_HOST'),
-			'MYSQL_PORT'     => getenv('MYSQL_PORT'),
-			'MYSQL_DATABASE' => getenv('MYSQL_DATABASE'),
-			'MYSQL_USER'     => getenv('MYSQL_USER'),
-			'MYSQL_PASSWORD' => getenv('MYSQL_PASSWORD'),
+			'DB_HOST'     => getenv('DB_HOST'),
+			'DB_PORT'     => getenv('DB_PORT'),
+			'DB_DATABASE' => getenv('DB_DATABASE'),
+			'DB_USERNAME' => getenv('DB_USERNAME'),
+			'DB_PASSWORD' => getenv('DB_PASSWORD'),
 		);
 
 		// ---- 1. 单变量（手填）----
@@ -103,11 +110,7 @@ if ( ! function_exists('erp_db_config'))
 		}
 
 		// ---- 2. 连接串 ----
-		$url = erp_env_pick(array('DATABASE_URL', 'MYSQL_URL', 'DB_URL', 'CLEARDB_DATABASE_URL', 'JAWSDB_URL', 'DATABASE_URI'));
-		if (isset($direct['DATABASE_URL']) && $direct['DATABASE_URL'] !== false && $direct['DATABASE_URL'] !== '')
-		{
-			$url = array($direct['DATABASE_URL'], 'DATABASE_URL');
-		}
+		$url     = erp_env_pick(array('DATABASE_URL', 'MYSQL_URL', 'DB_URL', 'CLEARDB_DATABASE_URL', 'JAWSDB_URL', 'DATABASE_URI'));
 		$url_cfg = array();
 		if ($url[0] !== '' && preg_match('#^[a-z][a-z0-9+.-]*://#i', $url[0]))
 		{

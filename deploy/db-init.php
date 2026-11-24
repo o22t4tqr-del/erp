@@ -61,13 +61,13 @@ else
     erp_log('环境里没有任何 DB_/MYSQL_/DATABASE_ 变量');
 }
 
-if (getenv('AUTO_INIT_SCHEMA') === '0') {
+if (erp_opt('AUTO_INIT_SCHEMA', '1') === '0') {
     erp_log('AUTO_INIT_SCHEMA=0，跳过表结构初始化');
     exit(0);
 }
 
 // ---- 1. 等待数据库 ----
-$wait     = (int) (getenv('WAIT_DB_SECONDS') ? getenv('WAIT_DB_SECONDS') : 120);
+$wait     = (int) erp_opt('WAIT_DB_SECONDS', '120');
 $deadline = time() + $wait;
 $mysqli   = null;
 $lastErr  = '';
@@ -81,7 +81,7 @@ while (true) {
     if (time() >= $deadline) {
         fwrite(STDERR, '[db-init] 无法连接数据库 ' . $user . '@' . $host . ':' . $port . '/' . $name
             . '，等了 ' . $wait . ' 秒：' . $lastErr . "\n");
-        if (getenv('DB_INIT_STRICT') === '1') {
+        if (erp_opt('DB_INIT_STRICT', '0') === '1') {
             fwrite(STDERR, "[db-init] DB_INIT_STRICT=1，退出\n");
             exit(1);
         }
@@ -105,7 +105,7 @@ if ($exists) {
 $sqlFile = '/usr/local/share/erp.sql';
 if (!is_file($sqlFile)) {
     fwrite(STDERR, "[db-init] 找不到 $sqlFile\n");
-    if (getenv('DB_INIT_STRICT') === '1') {
+    if (erp_opt('DB_INIT_STRICT', '0') === '1') {
         exit(1);
     }
     erp_log('没有表结构文件，继续启动（库里必须已经有表）');
@@ -121,7 +121,7 @@ foreach ($stmts as $stmt) {
     if ($mysqli->query($stmt) === false) {
         fwrite(STDERR, '[db-init] 第 ' . ($n + 1) . " 条语句失败: " . $mysqli->error . "\n"
             . substr($stmt, 0, 300) . "\n");
-        if (getenv('DB_INIT_STRICT') === '1') {
+        if (erp_opt('DB_INIT_STRICT', '0') === '1') {
             exit(1);
         }
         erp_log('导入中断，继续启动；修好库后重启会重新导入');

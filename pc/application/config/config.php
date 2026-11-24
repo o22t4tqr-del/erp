@@ -46,11 +46,7 @@ $config['base_url'] = '';
  * CI 2.2.5 自动推断会生成 http:// 的静态资源地址，HTTPS 页面会因混合内容被浏览器拦掉。
  * 这里优先用 APP_URL，其次看 X-Forwarded-Proto，最后按 Host 判断（非本机默认 https）。
  */
-if (getenv('APP_URL') !== false && getenv('APP_URL') !== '')
-{
-	$config['base_url'] = rtrim(getenv('APP_URL'), '/').'/';
-}
-elseif ( ! empty($_SERVER['HTTP_HOST']))
+if ( ! empty($_SERVER['HTTP_HOST']))
 {
 	$erp_proto = '';
 	if ( ! empty($_SERVER['HTTP_X_FORWARDED_PROTO']))

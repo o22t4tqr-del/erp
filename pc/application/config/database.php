@@ -32,7 +32,7 @@ $db['default']['database'] = $erp_db['database'];
 $db['default']['dbdriver'] = 'mysqli';
 $db['default']['dbprefix'] = 'ci_';
 $db['default']['pconnect'] = FALSE;
-$db['default']['db_debug'] = (getenv('DB_DEBUG') === '0') ? FALSE : TRUE;
+$db['default']['db_debug'] = (erp_opt('DB_DEBUG', '1') === '0') ? FALSE : TRUE;
 $db['default']['cache_on'] = FALSE;
 $db['default']['cachedir'] = './data/cache/';
 $db['default']['char_set'] = 'utf8';

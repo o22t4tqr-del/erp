@@ -87,7 +87,9 @@ git push -u origin main
 
 ## 4. 环境变量（在应用页的 Environment 标签）
 
-连接参数是**自动识别**的：代码按顺序找下面这些变量名，谁有值用谁，改名不用改代码。
+连接参数是**自动识别**的。平台能扫到、会列出来让你填的只有 **5 个**：
+`DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD`。
+下面这些别名也都认，但不会出现在平台的待填列表里，想用直接加就行。
 
 | 字段 | 认得的变量名（从左到右优先） |
 |---|---|
@@ -98,12 +100,12 @@ git push -u origin main
 | 用户 | `DB_USERNAME`、`DB_USER`、`DATABASE_USER`、`MYSQL_USER`、`MYSQL_USERNAME` |
 | 密码 | `DB_PASSWORD`、`DB_PASS`、`DB_PWD`、`DATABASE_PASSWORD`、`MYSQL_PASSWORD`、`MYSQL_PASS`、`MYSQL_ROOT_PASSWORD` |
 
-这些变量名在 `pc/application/config/db_env.php` 里是逐条 `getenv('DB_HOST')` 写出来的（不是动态循环），平台在构建时会扫描代码，能识别到应用需要哪些变量。仓库根的 `.env.example` 是同一份清单，可以照着填。
+这 5 个在 `pc/application/config/db_env.php` 里是显式 `getenv('DB_HOST')` 写死的（不是动态循环），平台构建时扫得到；别名走动态兜底，所以不会把列表撑长。仓库根的 `.env.example` 是同一份清单。
 
 优先级：**手填的单变量 > 连接串 > 默认值**（`localhost` / `3306` / `erp` / `root`）。
 单变量只填一部分也行，没填的字段才用连接串或默认值。
 
-其他可选变量：
+其他可选变量（平台不会提示，需要时手动加）：
 
 | 变量 | 默认 | 说明 |
 |---|---|---|

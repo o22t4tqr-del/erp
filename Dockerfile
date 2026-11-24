@@ -9,6 +9,8 @@
 FROM php:8.2-apache
 
 ENV TZ=Asia/Shanghai
+# 监听端口：平台（blitz.cloud）按 PORT / EXPOSE 识别，两处都指明 8080
+ENV PORT=8080
 
 # 扩展：gd（图片/缩略图）、mysqli + pdo_mysql（数据库）、zip（Excel 导入导出）
 RUN set -eux; \

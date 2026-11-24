@@ -47,6 +47,26 @@ if ( ! function_exists('erp_db_config'))
 			'database' => 'erp',
 		);
 
+		/*
+		 * 显式读取常用变量名。
+		 * blitz.cloud 之类的平台会在构建时扫描代码，看应用从哪个变量读数据库地址；
+		 * 只写 getenv($name) 的动态循环扫不到任何名字，所以这里逐个写出来。
+		 * 下面仍然保留动态兜底，覆盖别名。
+		 */
+		$direct = array(
+			'DATABASE_URL'   => getenv('DATABASE_URL'),
+			'DB_HOST'        => getenv('DB_HOST'),
+			'DB_PORT'        => getenv('DB_PORT'),
+			'DB_DATABASE'    => getenv('DB_DATABASE'),
+			'DB_USERNAME'    => getenv('DB_USERNAME'),
+			'DB_PASSWORD'    => getenv('DB_PASSWORD'),
+			'MYSQL_HOST'     => getenv('MYSQL_HOST'),
+			'MYSQL_PORT'     => getenv('MYSQL_PORT'),
+			'MYSQL_DATABASE' => getenv('MYSQL_DATABASE'),
+			'MYSQL_USER'     => getenv('MYSQL_USER'),
+			'MYSQL_PASSWORD' => getenv('MYSQL_PASSWORD'),
+		);
+
 		// ---- 1. 单变量（手填）----
 		$map = array(
 			'hostname' => array('DB_HOST', 'DB_HOSTNAME', 'DATABASE_HOST', 'MYSQL_HOST', 'MYSQL_HOSTNAME', 'MYSQL_SERVER'),
@@ -60,6 +80,20 @@ if ( ! function_exists('erp_db_config'))
 		$manual_src = array();
 		foreach ($map as $field => $names)
 		{
+			foreach ($names as $name)
+			{
+				if (isset($direct[$name]) && $direct[$name] !== false && $direct[$name] !== '')
+				{
+					$manual[$field]     = $direct[$name];
+					$manual_src[$field] = $name;
+					break;
+				}
+			}
+			if (isset($manual[$field]))
+			{
+				continue; // 上面已经取到
+			}
+
 			$hit = erp_env_pick($names);
 			if ($hit[1] !== '')
 			{
@@ -69,7 +103,11 @@ if ( ! function_exists('erp_db_config'))
 		}
 
 		// ---- 2. 连接串 ----
-		$url     = erp_env_pick(array('DATABASE_URL', 'MYSQL_URL', 'DB_URL', 'CLEARDB_DATABASE_URL', 'JAWSDB_URL', 'DATABASE_URI'));
+		$url = erp_env_pick(array('DATABASE_URL', 'MYSQL_URL', 'DB_URL', 'CLEARDB_DATABASE_URL', 'JAWSDB_URL', 'DATABASE_URI'));
+		if (isset($direct['DATABASE_URL']) && $direct['DATABASE_URL'] !== false && $direct['DATABASE_URL'] !== '')
+		{
+			$url = array($direct['DATABASE_URL'], 'DATABASE_URL');
+		}
 		$url_cfg = array();
 		if ($url[0] !== '' && preg_match('#^[a-z][a-z0-9+.-]*://#i', $url[0]))
 		{

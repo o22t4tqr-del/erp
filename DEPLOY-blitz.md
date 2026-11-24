@@ -98,6 +98,8 @@ git push -u origin main
 | 用户 | `DB_USERNAME`、`DB_USER`、`DATABASE_USER`、`MYSQL_USER`、`MYSQL_USERNAME` |
 | 密码 | `DB_PASSWORD`、`DB_PASS`、`DB_PWD`、`DATABASE_PASSWORD`、`MYSQL_PASSWORD`、`MYSQL_PASS`、`MYSQL_ROOT_PASSWORD` |
 
+这些变量名在 `pc/application/config/db_env.php` 里是逐条 `getenv('DB_HOST')` 写出来的（不是动态循环），平台在构建时会扫描代码，能识别到应用需要哪些变量。仓库根的 `.env.example` 是同一份清单，可以照着填。
+
 优先级：**手填的单变量 > 连接串 > 默认值**（`localhost` / `3306` / `erp` / `root`）。
 单变量只填一部分也行，没填的字段才用连接串或默认值。
 

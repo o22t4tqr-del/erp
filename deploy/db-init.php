@@ -81,7 +81,12 @@ while (true) {
     if (time() >= $deadline) {
         fwrite(STDERR, '[db-init] 无法连接数据库 ' . $user . '@' . $host . ':' . $port . '/' . $name
             . '，等了 ' . $wait . ' 秒：' . $lastErr . "\n");
-        exit(1);
+        if (getenv('DB_INIT_STRICT') === '1') {
+            fwrite(STDERR, "[db-init] DB_INIT_STRICT=1，退出\n");
+            exit(1);
+        }
+        erp_log('DB_INIT_STRICT 未开启，仍然启动应用；页面会提示数据库连接失败');
+        exit(0);
     }
     sleep(2);
 }
@@ -100,7 +105,11 @@ if ($exists) {
 $sqlFile = '/usr/local/share/erp.sql';
 if (!is_file($sqlFile)) {
     fwrite(STDERR, "[db-init] 找不到 $sqlFile\n");
-    exit(1);
+    if (getenv('DB_INIT_STRICT') === '1') {
+        exit(1);
+    }
+    erp_log('没有表结构文件，继续启动（库里必须已经有表）');
+    exit(0);
 }
 
 $sql   = file_get_contents($sqlFile);
@@ -112,7 +121,11 @@ foreach ($stmts as $stmt) {
     if ($mysqli->query($stmt) === false) {
         fwrite(STDERR, '[db-init] 第 ' . ($n + 1) . " 条语句失败: " . $mysqli->error . "\n"
             . substr($stmt, 0, 300) . "\n");
-        exit(1);
+        if (getenv('DB_INIT_STRICT') === '1') {
+            exit(1);
+        }
+        erp_log('导入中断，继续启动；修好库后重启会重新导入');
+        exit(0);
     }
     $n++;
 }

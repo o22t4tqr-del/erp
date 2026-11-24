@@ -3,11 +3,14 @@
 set -eu
 
 PORT="${PORT:-8080}"
+echo "[entrypoint] PORT=${PORT}（平台没给就用 8080）"
+echo "[entrypoint] 容器里可见的环境变量名：$(env | cut -d= -f1 | sort | tr '\n' ' ')"
 
 # blitz.cloud 用 PORT 告诉应用监听哪个端口（默认 8080）；镜像按 8080 构建，这里按实际值改
 if [ "$PORT" != "8080" ]; then
     sed -ri "s/^Listen 8080$/Listen ${PORT}/" /etc/apache2/ports.conf
     sed -ri "s/:8080>/:${PORT}>/" /etc/apache2/sites-available/000-default.conf
+    echo "[entrypoint] Apache 改听 ${PORT}"
 fi
 
 # /data 是持久卷：首次启动把镜像自带的示例上传文件铺进去

@@ -107,6 +107,7 @@ git push -u origin main
 |---|---|---|
 | `AUTO_INIT_SCHEMA` | `1` | `0` = 不自动导入表结构（库由你自己导好时用） |
 | `WAIT_DB_SECONDS` | `120` | 等数据库就绪的秒数 |
+| `DB_INIT_STRICT` | `0` | `1` = 数据库连不上就让容器退出；默认继续启动，页面会显示数据库错误，方便排查 |
 | `DB_DEBUG` | `1` | `0` = 不把 SQL 错误显示到页面（正式对外时建议 0） |
 | `TZ` | `Asia/Shanghai` | 时区 |
 
@@ -159,7 +160,7 @@ AUTO_INIT_SCHEMA=0
 
 | 现象 | 原因 / 处理 |
 |---|---|
-| 一直转圈、502 | 看 **Logs**。多半是 `db-init` 连不上库：Advanced 里 **Needs a database 没打开**，或没选 MariaDB |
+| 一直转圈、502 / 打开报数据库错误 | 看 **Logs** 开头两行：`[entrypoint] 容器里可见的环境变量名` 里有没有 `DB_HOST`；再看 `[db-init] 变量来源`，全是「默认值」就说明变量没进来（没保存、没重启，或加到了别的应用上） |
 | 打开是目录列表 / 404 | Dockerfile 不在仓库根目录；确认仓库首页就能看到 `Dockerfile` |
 | 500 错误 | Logs 里的 PHP 错误。设 `DB_DEBUG=1` 可把 SQL 错误显示到页面 |
 | 页面能开但点不动 | 确认 `index.php` 里 `ENVIRONMENT` 是 `production`（本包已固定），dev 模式的提示会污染 AJAX 返回 |

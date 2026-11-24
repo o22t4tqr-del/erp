@@ -168,6 +168,7 @@ AUTO_INIT_SCHEMA=0
 | 打开是目录列表 / 404 | Dockerfile 不在仓库根目录；确认仓库首页就能看到 `Dockerfile` |
 | 500 错误 | Logs 里的 PHP 错误。设 `DB_DEBUG=1` 可把 SQL 错误显示到页面 |
 | 页面能开但点不动 | 确认 `index.php` 里 `ENVIRONMENT` 是 `production`（本包已固定），dev 模式的提示会污染 AJAX 返回 |
+| `1045 Access denied for user ...@<IP>` | 库那边拒绝认证：账号/密码不对，或限制了来源 IP（要把日志里的那个 IP 加白名单）。`1049` 是库名不存在 |
 | 报表打不开 | MySQL 8 的 `ONLY_FULL_GROUP_BY` 问题，驱动已在连接时按会话关掉；MariaDB 本身没有这个限制 |
 | 中文乱码 | `erp.sql` 建表是 `utf8`，连接也是 `utf8`；若你自己建的库，确认库/表字符集不是 latin1 |
 | 内存告警 | 把应用 Size 调到 Medium；镜像已把 Apache prefork 压到最小 |

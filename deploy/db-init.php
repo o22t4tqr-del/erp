@@ -67,28 +67,57 @@ if (erp_opt('AUTO_INIT_SCHEMA', '1') === '0') {
 }
 
 // ---- 1. 等待数据库 ----
+// PHP 8.1+ 默认 MYSQLI_REPORT_ERROR|STRICT：new mysqli() 失败会抛 mysqli_sql_exception，
+// 直接 fatal，重试和降级逻辑都不会执行。这里必须先关掉。
+mysqli_report(MYSQLI_REPORT_OFF);
+
 $wait     = (int) erp_opt('WAIT_DB_SECONDS', '120');
 $deadline = time() + $wait;
 $mysqli   = null;
 $lastErr  = '';
+$lastNo   = 0;
+$gaveUp   = false;
 
 while (true) {
-    $mysqli = @new mysqli($host, $user, $pass, $name, $port);
-    if (!$mysqli->connect_errno) {
+    $mysqli = null;
+    try {
+        $mysqli = @new mysqli($host, $user, $pass, $name, $port);
+    } catch (Throwable $e) {
+        $lastErr = $e->getMessage();
+    }
+
+    if ($mysqli !== null && !$mysqli->connect_errno) {
         break;
     }
-    $lastErr = $mysqli->connect_error;
+    if ($mysqli !== null) {
+        $lastErr = $mysqli->connect_error;
+        $lastNo  = (int) $mysqli->connect_errno;
+    }
+
+    // 1044 没权限 / 1045 账号密码错 / 1049 库不存在：等下去不会变好，直接收工
+    if (in_array($lastNo, array(1044, 1045, 1049), true)) {
+        fwrite(STDERR, '[db-init] 连接被拒绝（' . $lastNo . '）：' . $lastErr . "\n");
+        erp_log('这是账号/密码/库名/来源 IP 的问题，重试无用，停止等待');
+        $gaveUp = true;
+        break;
+    }
+
     if (time() >= $deadline) {
         fwrite(STDERR, '[db-init] 无法连接数据库 ' . $user . '@' . $host . ':' . $port . '/' . $name
             . '，等了 ' . $wait . ' 秒：' . $lastErr . "\n");
-        if (erp_opt('DB_INIT_STRICT', '0') === '1') {
-            fwrite(STDERR, "[db-init] DB_INIT_STRICT=1，退出\n");
-            exit(1);
-        }
-        erp_log('DB_INIT_STRICT 未开启，仍然启动应用；页面会提示数据库连接失败');
-        exit(0);
+        $gaveUp = true;
+        break;
     }
     sleep(2);
+}
+
+if ($gaveUp || $mysqli === null || $mysqli->connect_errno) {
+    if (erp_opt('DB_INIT_STRICT', '0') === '1') {
+        fwrite(STDERR, "[db-init] DB_INIT_STRICT=1，退出\n");
+        exit(1);
+    }
+    erp_log('数据库不可用，仍然启动应用；页面会提示数据库连接失败');
+    exit(0);
 }
 
 $mysqli->set_charset('utf8');

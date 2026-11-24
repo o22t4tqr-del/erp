@@ -1,0 +1,5 @@
+# data/download 里是 Excel 导入模板和 install.sql（建表语句）。
+# 模板只被服务端 read_file() 读取，不需要对外暴露；SQL 更不应该能下载。
+<FilesMatch "\.(sql|sql\.gz|bak|log)$">
+    Require all denied
+</FilesMatch>

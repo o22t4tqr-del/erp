@@ -1,0 +1,164 @@
+# 在 blitz.cloud 上部署 H5ERP
+
+这个目录本身就是 blitz 要的仓库根：`Dockerfile` 在最外层，`pc/` 是应用，`erp.sql` 是表结构。
+**不需要 docker-compose**，blitz 一个容器跑应用，数据库用平台托管的 MariaDB（外部库）。
+
+---
+
+## 0. 先搞清楚两件事
+
+1. **端口**：blitz 通过 `PORT` 环境变量告诉应用监听端口（默认 8080）。镜像里 Apache 已按 8080 配置，启动脚本会按 `PORT` 再改一次，两个都兼容。
+2. **数据库只能从容器里连**：blitz 的托管数据库没有公网地址、没有开放端口，你本机连不上，也没法从本机导入 SQL。
+   所以镜像带了一个启动脚本：**首次启动发现库是空的，就自动导入 `erp.sql`**；库里已有 `ci_admin` 表则跳过，绝不动现有数据。
+
+---
+
+## 1. 推到 GitHub（私有仓库可以）
+
+```bash
+cd <这个目录>
+git init
+git add -A
+git commit -m "H5ERP PC 端 PHP 8.2，适配 blitz.cloud"
+git branch -M main
+git remote add origin git@github.com:<你的账号>/h5erp.git
+git push -u origin main
+```
+
+不要提交 `*.zip`（`.dockerignore` / `.gitignore` 已排除）。
+
+---
+
+## 2. 在 blitz.cloud 建应用
+
+1. 打开 <https://dashboard.blitz.cloud> → **Host something new**
+2. 选 **My own code** → **Connect GitHub** → 选中刚才的仓库 → 分支 `main`
+3. 应用名就是子域名，例如 `erp` → `erp.<你的名字>.prod.page`
+4. 点 **Advanced settings**，确认三件事：
+   - **Dockerfile**：用仓库根目录的这个（不要让它自动生成）
+   - **Needs a database**：**打开**，引擎选 **MariaDB 11.4**
+     （打开后平台才会注入 `DATABASE_URL`；不打开应用连不上库）
+   - **Size**：至少 **Small**（128 MB）；建议 **Medium**（256 MB），PDF 打印和批量导出更稳
+5. **Build it and put it online**
+
+构建日志里如果看到 `apt-get`、`docker-php-ext-install` 就是在装 PHP 扩展，第一次要几分钟。
+
+---
+
+## 3. 首次启动会发生什么（日志里能看到）
+
+应用启动时依次做：
+
+1. 从 `DATABASE_URL`（或 `DB_*` / `MYSQL_*`）解析数据库连接
+2. 等数据库能连上（最多 `WAIT_DB_SECONDS`，默认 120 秒；免费套餐休眠唤醒时会慢一点）
+3. 库里没有 `ci_admin` 表 → 导入 `erp.sql`（25 张表 + admin 账号 + 菜单/单据模板）
+4. 启动 Apache，监听 `PORT`（8080）
+
+日志应当是：
+
+```
+[db-init] 空库，导入 erp.sql（276 条语句）
+[db-init] 导入完成：25 张表，管理员账号 admin 已就绪
+```
+
+然后访问 `https://<app>.<你的名字>.prod.page`，账号 **admin / admin888**。
+**登录后立刻改密码**（系统设置 → 用户管理）。
+
+---
+
+## 3.5 首次登录后先建基础资料（5 分钟，否则开不了单）
+
+`erp.sql` 只带表结构、菜单和单据模板，不带业务资料。按这个顺序建一遍，之后所有单据才可用：
+
+| 顺序 | 页面 | 建什么 |
+|---|---|---|
+| 1 | 基础资料 → 商品分类 | 至少一个分类（如「默认分类」） |
+| 2 | 基础资料 → 计量单位 | 至少一个单位（如「个」） |
+| 3 | 基础资料 → 仓库 | 至少一个仓库（**状态必须是正常/未锁定**，否则开单选不到） |
+| 4 | 基础资料 → 结算账户 | 至少一个账户（如「现金」） |
+| 5 | 基础资料 → 客户 / 供应商 | 开销售单、采购单前各建一个 |
+| 6 | 基础资料 → 商品 | 建商品时要选分类和单位 |
+
+做完这些，采购入库 → 审核 → 库存 → 打印 PDF → 报表 这条链路就通了（这条链路已实测过）。
+
+---
+
+## 4. 环境变量（都在应用页的 Environment 标签）
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `DATABASE_URL` | 平台注入 | `mysql://user:pass@host:3306/db`，优先使用 |
+| `AUTO_INIT_SCHEMA` | `1` | `0` = 不自动导入表结构（库由你自己导好时用） |
+| `WAIT_DB_SECONDS` | `120` | 等数据库就绪的秒数 |
+| `DB_DEBUG` | `1` | `0` = 不把 SQL 错误显示到页面（正式对外时建议 0） |
+| `TZ` | `Asia/Shanghai` | 时区 |
+
+改完环境变量要**重启应用**才生效。
+
+---
+
+## 5. 如果你要接自己的 MySQL / MariaDB
+
+在 Environment 里加：
+
+```
+DB_HOST=你的地址
+DB_PORT=3306
+DB_DATABASE=库名
+DB_USERNAME=用户
+DB_PASSWORD=密码
+AUTO_INIT_SCHEMA=0
+```
+
+（也可以只给 `DATABASE_URL`。）
+`AUTO_INIT_SCHEMA=0` 是防止自动导入动到你的生产库；表结构自己用 `erp.sql` 导好即可。
+如果库是空的又懒得手动导，把 `AUTO_INIT_SCHEMA` 留默认 `1` 也行，脚本只在没有 `ci_admin` 表时才导入。
+
+> 注意：数据库必须是 MySQL 5.7+/8 或 MariaDB 10.4+，**不能用 PostgreSQL**。
+
+---
+
+## 6. 文件与备份
+
+- 上传的商品图片、附件写在 `/data`（镜像里声明了 `VOLUME`，blitz 会持久保留，预留 1 GB）。
+  容器重启不会丢，但**免费套餐不做夜间备份**；重要文件用应用页的 **Files** 下载一份。
+- 数据库每晚自动备份（免费套餐保留 7 天）。
+- 免费套餐应用 **30 分钟无人访问会休眠**，下次访问自动唤醒，第一次会慢 10～60 秒，属正常现象。
+
+---
+
+## 7. 出问题先看哪里
+
+| 现象 | 原因 / 处理 |
+|---|---|
+| 一直转圈、502 | 看 **Logs**。多半是 `db-init` 连不上库：Advanced 里 **Needs a database 没打开**，或没选 MariaDB |
+| 打开是目录列表 / 404 | Dockerfile 不在仓库根目录；确认仓库首页就能看到 `Dockerfile` |
+| 500 错误 | Logs 里的 PHP 错误。设 `DB_DEBUG=1` 可把 SQL 错误显示到页面 |
+| 页面能开但点不动 | 确认 `index.php` 里 `ENVIRONMENT` 是 `production`（本包已固定），dev 模式的提示会污染 AJAX 返回 |
+| 报表打不开 | MySQL 8 的 `ONLY_FULL_GROUP_BY` 问题，驱动已在连接时按会话关掉；MariaDB 本身没有这个限制 |
+| 中文乱码 | `erp.sql` 建表是 `utf8`，连接也是 `utf8`；若你自己建的库，确认库/表字符集不是 latin1 |
+| 内存告警 | 把应用 Size 调到 Medium；镜像已把 Apache prefork 压到最小 |
+
+---
+
+## 8. 本地验证（可选，不用 blitz 也能跑）
+
+```bash
+# 用外部库（推荐，和线上一致）
+docker build -t h5erp .
+docker run -p 8080:8080 \
+  -e DATABASE_URL='mysql://root:pass@host.docker.internal:3306/erp' \
+  h5erp
+
+# 或者一键起应用 + MySQL 8（仅本地调试用）
+docker compose up -d
+```
+
+访问 <http://localhost:8080>，admin / admin888。
+
+---
+
+## 9. 和 docker-compose 的区别
+
+`docker-compose.yml` 只是本地调试方便，里面带了一个 MySQL 容器。
+blitz 上**只用 Dockerfile**：应用一个容器 + 平台托管 MariaDB，`docker-compose.yml` 会被忽略。

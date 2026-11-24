@@ -196,7 +196,26 @@ class Contact extends CI_Controller {
 		        }
 		    }*/
 		    //add by michen 20170724 end
-			die('{"status":200,"msg":"success","data":{"linkMen":'.$data['linkMans'].',"contactName":"'.$data['name'].'","buId":'.$data['id'].',"cLevel":0}}');
+			// linkMans 可能是 NULL/空串（别的系统写进来的数据），直接拼进 JSON 会变成
+			// "linkMen":, 这种非法 JSON，前端 jQuery 解析失败就报「服务端响应错误！」
+			$linkMen = isset($data['linkMans']) ? trim((string) $data['linkMans']) : '';
+			$linkMenArr = array();
+			if ($linkMen !== '') {
+			    $decoded = json_decode($linkMen, true);
+			    if (is_array($decoded)) {
+			        $linkMenArr = $decoded;
+			    }
+			}
+			die(json_encode(array(
+			    'status' => 200,
+			    'msg'    => 'success',
+			    'data'   => array(
+			        'linkMen'     => $linkMenArr,
+			        'contactName' => $data['name'],
+			        'buId'        => intval($data['id']),
+			        'cLevel'      => 0,
+			    ),
+			)));
 		} else {
 		    str_alert(-1,''); 
 		}
@@ -205,7 +224,9 @@ class Contact extends CI_Controller {
 	public function getLinkMen(){
 	    $buId  = intval($this->input->get('buId',TRUE));
 	    $data = $this->mysql_model->get_rows('contact','(isDelete=0) and id='.$buId);
-	    die($data['linkMans']);
+	    $linkMen = isset($data['linkMans']) ? trim((string) $data['linkMans']) : '';
+	    // 空值也要回一个合法 JSON，否则前端解析失败
+	    die($linkMen !== '' ? $linkMen : '[]');
 	}
  
  

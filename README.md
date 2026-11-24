@@ -1,7 +1,7 @@
 #环境变量
-DB_HOST=
-DB_PORT=
-DB_DATABASE=
-DB_USERNAME=
-DB_PASSWORD=
-AUTO_INIT_SCHEMA=  (0为步重建，1为新建,建议手动建好还厚设置为0)
+#DB_HOST=
+#DB_PORT=
+#DB_DATABASE=
+#DB_USERNAME=
+#DB_PASSWORD=
+#AUTO_INIT_SCHEMA=  (0为步重建，1为新建,建议手动建好还厚设置为0)
